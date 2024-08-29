@@ -1,0 +1,123 @@
+The following queries are part of my most recent project in SQLite. In these queries i will be filtering and ordering data regarding the sales of several months.
+
+--Question #1
+--How many orders were placed in January?
+--Remember to filter out the blank and incorrect order IDs like we did in the "dealing with messy data" section of the previous lesson!
+
+SELECT *
+FROM BIT_DB.JanSales;
+
+-- Query above shows basically what the whole data looks like.
+
+SELECT SUM(Quantity)
+FROM BIT_DB.JanSales;
+
+-- Above was my query where I thought I would select the sum of the quantities of the orders but it was wrong.
+
+SELECT COUNT(orderid)
+FROM BIT_DB.JanSales
+WHERE length(orderid) = 6
+AND orderid <> 'Order ID';
+
+-- This above is the correct query that shows how many orders were placed in January. And there were 9681 orders placed in January.
+
+-- Question #2 
+-- How many of those orders were for an iPhone?
+
+SELECT COUNT(orderid)  --We need to get the "how many" that's why COUNT is used with orderid
+FROM BIT_DB.JanSales 
+WHERE Product='iPhone' -- Important to use only one quote '
+AND length(orderid) = 6 -- This is to filter the data in a very accurate way because there are some spaces that are NULL
+AND orderid <> 'Order ID'; -- I got to work on the understanding of this one...
+
+--Question #3
+--Select the customer account numbers for all the orders that were placed in February.
+
+SELECT *
+FROM BIT_DB.FebSales;
+
+SELECT distinct acctnum -- we want all different account numbers
+FROM BIT_DB.customers cust -- account numbers are in the customers table
+INNER JOIN BIT_DB.FebSales Feb -- we want the data in common between customers table and febsales table. INNER JOIN is needed 
+ON cust.order_id=FEB.orderid --Order ID is the column in common, but notice how in each table is written differently, although meaning the same thing.
+WHERE length(orderid)=6
+AND orderid <> 'Order ID';
+
+
+-- Question #4
+-- Which product was the cheapest one sold in January, and what was the price?
+
+SELECT Product,MIN(price) -- product needs to be selected, and the minimum price of it
+FROM BIT_DB.JanSales 
+WHERE length(orderID)=6;
+--Below will be ways that this question can be answered.
+SELECT product, min(price)
+FROM BIT_DB.JanSales Jan
+GROUP BY product, price
+ORDER BY price ASC
+LIMIT 1;
+
+SELECT distinct product, MIN(price)
+FROM BIT_DB.JanSales Jan
+GROUP BY product, price
+ORDER BY price ASC LIMIT 1;
+
+SELECT distinct product, price
+FROM BIT_DB.JanSales
+ORDER BY price ASC LIMIT 1;
+
+SELECT distinct Product, price
+FROM BIT_DB.JanSales
+WHERE price in (SELECT min(price) FROM BIT_DB.JanSales); -- A subquery was needed in this whole query because in the SELECT command the minimum wasn't specified in the price or told to be calculated.
+
+-- Question #5
+--What is the total revenue for each product sold in January?
+--(Revenue can be calculated using the number of products sold and the price of the products).
+
+SELECT SUM(Quantity) *(price) as revenue, Product
+FROM BIT_DB.JanSales
+GROUP BY Product;
+
+--Explanation of the query above: 
+--Let's make sense of why we use SUM(quantity)*price rather than SUM(quantity*price). To start out, let's take a look at the data we're interested in from the table we're querying.
+--Go ahead and run this SQL:
+
+--SELECT orderid, quantity, price, product
+--FROM BIT_DB.JanSales;
+
+--You should see results showing that for each orderID, 1 or 2 products were ordered at a time. There are lots of duplicates of the product names, because different order IDs ordered the same product in many cases. How would we calculate how many of each product were sold? We'd use SUM(quantity).
+--So go ahead and run this query now:
+
+--SELECT SUM(quantity), price, product
+--FROM BIT_DB.JanSales
+--GROUP BY product, price;
+
+--Now there's only one of each product listed, with the price of that product and the total quantity of each that were sold. We want to take it once step further now and calculate the revenue for each product, which would be the the quantity of each product sold * the price of each product.
+--Based on our last query, we can see that this would be:
+
+--SELECT SUM(quantity)*price as Revenue
+--,product
+--FROM BIT_DB.JanSales
+--GROUP BY product;
+
+--Question #6
+--Which products were sold in February at 548 Lincoln St, Seattle, WA 98101, how many of each were sold, and what was the total revenue?
+
+SELECT *
+FROM BIT_DB.FebSales;
+
+SELECT SUM(Quantity), Product, SUM(quantity)*price as revenue
+FROM BIT_DB.FebSales
+WHERE location ='548 Lincoln St, Seattle, WA 98101'
+GROUP BY Product;
+
+-- Question #7
+-- How many customers ordered more than 2 products at a time in February, and what was the average amount spent for those customers?
+
+SELECT count(distinct cust.acctnum), avg(quantity*price)
+FROM BIT_DB.FebSales Feb
+LEFT JOIN BIT_DB.customers cust
+ON FEB.orderid=cust.order_id
+WHERE Feb.Quantity>2
+AND length(orderid) = 6
+AND orderid <> 'Order ID';
